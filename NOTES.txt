@@ -1,0 +1,2 @@
+Descargada la plantilla de:
+https://github.com/sajib1066/django-authentication

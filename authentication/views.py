@@ -4,4 +4,5 @@ from django.contrib.auth.models import User
 
 @login_required(login_url='signin')
 def home(request):
-    return render(request, 'home.html')
+
+    return render(request, 'HOME.html')

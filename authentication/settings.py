@@ -37,8 +37,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    # Libs
 
-    'authapp'
+    'apps.authapp'
 ]
 
 MIDDLEWARE = [
@@ -105,7 +106,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/3.0/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'es'
 
 TIME_ZONE = 'UTC'
 
@@ -124,3 +125,13 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static')
 ]
+
+
+import authentication.Config.ConfigMail as ConfigEmail
+EMAIL_BACKEND = ConfigEmail.EMAIL_BACKEND
+EMAIL_HOST = ConfigEmail.EMAIL_HOST
+EMAIL_PORT = ConfigEmail.EMAIL_PORT
+EMAIL_HOST_USER = ConfigEmail.EMAIL_HOST_USER
+EMAIL_HOST_PASSWORD = ConfigEmail.EMAIL_HOST_PASSWORD
+EMAIL_USE_TLS = ConfigEmail.EMAIL_USE_TLS
+EMAIL_USE_SSL = ConfigEmail.EMAIL_USE_SSL
