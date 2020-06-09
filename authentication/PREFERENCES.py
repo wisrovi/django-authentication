@@ -1,1 +1,3 @@
 NAME_APP = 'WISROVI'
+
+CORREO_PERMITIDO = '@fcv.org'

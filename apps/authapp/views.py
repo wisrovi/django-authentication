@@ -27,6 +27,7 @@ def signin(request):
     forms = LoginForm()
     if request.method == 'POST':
         forms = LoginForm(request.POST)
+        data = dict()
         if forms.is_valid():
             username = forms.cleaned_data['username']
             password = forms.cleaned_data['password']
@@ -44,18 +45,17 @@ def signin(request):
                 asunto = "Bienvenido, has iniciado sesion en tu cuenta"
                 firmaResumenRemitente = Preferences.NAME_APP
 
-                #import thread
-                #thread.start_new_thread(sendMail, (asunto, html_message, firmaResumenRemitente, request.user.email))
+                import threading
+                x = threading.Thread(target=sendMail,
+                                     args=(asunto, html_message, firmaResumenRemitente, request.user.email,))
+                x.start()
 
-                send_mail(
-                    asunto,
-                    strip_tags(html_message),
-                    firmaResumenRemitente,
-                    listaCorreosDestinatarios,
-                    fail_silently=False,
-                    html_message=html_message
-                )
-                return redirect('home')
+                data['redirec'] = 'ok'
+            else:
+                data['error'] = "Usuario o contraseña no son correctos."
+        else:
+            data['error'] = "Ha ocurrido un error, por favor revise los datos ingresados e intente nuevamente."
+        return JsonResponse(data, safe=False)
     context = {
         'form': forms
     }
@@ -94,29 +94,30 @@ def signup_confirm_email(request):
             else:
                 if len(parametros['code_verification']) < 1 \
                         or len(parametros['code_verification']) > 0:
-                    from random import randint
-                    code_verification = str(randint(10000000, 99999999))
-                    data['code_verification'] = code_verification
+                    if str(parametros['email']).find(Preferences.CORREO_PERMITIDO) >= 0:
+                        from random import randint
+                        code_verification = str(randint(10000000, 99999999))
+                        data['code_verification'] = code_verification
 
-                    diccionarioDatos = dict()
-                    diccionarioDatos['NAME'] = parametros['firstname']
-                    diccionarioDatos['LASTNAME'] = parametros['lastname']
-                    diccionarioDatos['EMAIL'] = parametros['email']
-                    diccionarioDatos['TOKEN'] = code_verification
+                        diccionarioDatos = dict()
+                        diccionarioDatos['NAME'] = parametros['firstname']
+                        diccionarioDatos['LASTNAME'] = parametros['lastname']
+                        diccionarioDatos['EMAIL'] = parametros['email']
+                        diccionarioDatos['TOKEN'] = code_verification
 
-                    listaCorreosDestinatarios = list()
-                    listaCorreosDestinatarios.append(parametros['email'])
-                    html_message = render_to_string('email_user_create.html', diccionarioDatos)
-                    asunto = "Bienvenido, falta confirmar correo"
-                    firmaResumenRemitente = Preferences.NAME_APP
-                    send_mail(
-                        asunto,
-                        strip_tags(html_message),
-                        firmaResumenRemitente,
-                        listaCorreosDestinatarios,
-                        fail_silently=False,
-                        html_message=html_message
-                    )
+                        listaCorreosDestinatarios = list()
+                        listaCorreosDestinatarios.append(parametros['email'])
+                        html_message = render_to_string('email_user_create.html', diccionarioDatos)
+                        asunto = "Bienvenido, falta confirmar correo"
+                        firmaResumenRemitente = Preferences.NAME_APP
+
+                        import threading
+                        x = threading.Thread(target=sendMail,
+                                             args=(asunto, html_message, firmaResumenRemitente, parametros['email'],))
+                        x.start()
+                    else:
+                        data[
+                            'error'] = 'Por favor digite un correo institucional con extensión: ' + Preferences.CORREO_PERMITIDO + "."
                 else:
                     data['code_verification'] = parametros['code_verification']
                 if len(parametros['code_verification']) > 0:
@@ -134,6 +135,7 @@ def signup_confirm_email(request):
         'code_verification': code_verification
     }
     return render(request, 'signup_confim_email.html', context)
+
 
 
 def signup(request):
@@ -176,14 +178,11 @@ def signup(request):
                     html_message = render_to_string('email_user_create.html', diccionarioDatos)
                     asunto = "Bienvenido, su cuenta ha sido creada correctamente"
                     firmaResumenRemitente = Preferences.NAME_APP
-                    send_mail(
-                        asunto,
-                        strip_tags(html_message),
-                        firmaResumenRemitente,
-                        listaCorreosDestinatarios,
-                        fail_silently=False,
-                        html_message=html_message
-                    )
+
+                    import threading
+                    x = threading.Thread(target=sendMail,
+                                         args=(asunto, html_message, firmaResumenRemitente, email,))
+                    x.start()
 
                     User.objects.create_user(username=username, password=password, email=email, first_name=firstname,
                                              last_name=lastname)

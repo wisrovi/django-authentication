@@ -34,37 +34,13 @@
 				<div class="container-login100-form-btn">
 					<div class="wrap-login100-form-btn">
 						<div class="login100-form-bgbtn"></div>
-						<button class="login100-form-btn">
+						<button type="submit" class="login100-form-btn">
 							INICIAR SESIÓN
 						</button>
 					</div>
 				</div>
 
-{#				<div class="txt1 text-center p-t-54 p-b-20">#}
-{#					<span>#}
-{#						Or Login Using#}
-{#					</span>#}
-{#				</div>#}
-
-{#				<div class="flex-c-m">#}
-{#					<a href="#" class="login100-social-item bg1">#}
-{#						<i class="fa fa-facebook"></i>#}
-{#					</a>#}
-{##}
-{#					<a href="#" class="login100-social-item bg2">#}
-{#						<i class="fa fa-twitter"></i>#}
-{#					</a>#}
-{##}
-{#					<a href="#" class="login100-social-item bg3">#}
-{#						<i class="fa fa-google"></i>#}
-{#					</a>#}
-{#				</div>#}
-
 				<div class="flex-col-c p-t-20">
-{#					<span class="txt1 p-b-17">#}
-{#						Or Sign Up Using#}
-{#					</span>#}
-
 					<a href="{% url 'signup_confirm_email' %}" class="txt2">
 						Regístrate
 					</a>
@@ -76,4 +52,34 @@
 
 
 <div id="dropDownSelect1"></div>
+{% endblock %}
+
+
+{% block javascript %}
+    <script type="text/javascript">
+        $('form').on('submit', function (e) {
+            e.preventDefault();
+            var parameters = $(this).serializeArray();
+            console.log(parameters);
+            $.ajax({
+                url: window.location.pathname,
+                type: 'POST',
+                data: parameters,
+                dataType: 'json'
+            }).done(function (data) {
+                if (data.hasOwnProperty('error')) {
+                    MensajeError(data['error']);
+                    return false;
+                }
+                if (data.hasOwnProperty('redirec')) {
+                    window.location.href = '{% url 'home' %}';
+                    return false;
+                }
+            }).fail(function (jqXHR, textStatus, errorThrown) {
+                alert(textStatus + ': ' + errorThrown);
+            }).always(function (data) {
+
+            });
+        });
+    </script>
 {% endblock %}
