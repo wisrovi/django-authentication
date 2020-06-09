@@ -11,6 +11,18 @@ import authentication.PREFERENCES as Preferences
 from .forms import LoginForm, RegistrationForm
 
 
+def sendMail(asunto, html, firma, correo):
+    send_mail(
+        asunto,
+        strip_tags(html),
+        firma,
+        [correo],
+        fail_silently=False,
+        html_message=html
+    )
+    pass
+
+
 def signin(request):
     forms = LoginForm()
     if request.method == 'POST':
@@ -21,11 +33,34 @@ def signin(request):
             user = authenticate(username=username, password=password)
             if user:
                 login(request, user)
+
+                diccionarioDatos = dict()
+                diccionarioDatos['NAME'] = username
+                diccionarioDatos['NAME'] = request.user.email
+
+                listaCorreosDestinatarios = list()
+                listaCorreosDestinatarios.append(request.user.email)
+                html_message = render_to_string('email_user_create.html', diccionarioDatos)
+                asunto = "Bienvenido, has iniciado sesion en tu cuenta"
+                firmaResumenRemitente = Preferences.NAME_APP
+
+                #import thread
+                #thread.start_new_thread(sendMail, (asunto, html_message, firmaResumenRemitente, request.user.email))
+
+                send_mail(
+                    asunto,
+                    strip_tags(html_message),
+                    firmaResumenRemitente,
+                    listaCorreosDestinatarios,
+                    fail_silently=False,
+                    html_message=html_message
+                )
                 return redirect('home')
     context = {
         'form': forms
     }
     return render(request, 'signin.html', context)
+
 
 def signup_confirm_email(request):
     forms = RegistrationForm()
@@ -38,22 +73,56 @@ def signup_confirm_email(request):
                     and len(parametros['code']) > 0:
                 if parametros['code_verification'] == parametros['code']:
                     print('OK')
-                    return redirect('signup')
-                    # No esta redireccionando a la siguiente vista
-                data['Value_button'] = 'VALIDAR CODIGO'
-                print('hola mundo')
-            else:
-                print(parametros['firstname'])
-                print(parametros['lastname'])
-                print(parametros['email'])
 
-                if len(parametros['code_verification']) < 1:
+                    paquete = dict()
+                    paquete['firstname'] = parametros['firstname']
+                    paquete['lastname'] = parametros['lastname']
+                    paquete['email'] = parametros['email']
+
+                    import base64
+                    import json
+                    import gzip
+                    paquete = gzip.compress(bytes(json.dumps(paquete), 'utf-8'))
+                    paquete = base64.b64encode(paquete).decode('utf-8')
+
+                    data = dict()
+                    data['redirec'] = paquete
+                    return JsonResponse(data, safe=False)
+                else:
+                    data['Value_button'] = 'VALIDAR CODIGO'
+                    print('hola mundo')
+            else:
+                if len(parametros['code_verification']) < 1 \
+                        or len(parametros['code_verification']) > 0:
                     from random import randint
-                    code_verification = str(randint(1000, 9999))
+                    code_verification = str(randint(10000000, 99999999))
                     data['code_verification'] = code_verification
+
+                    diccionarioDatos = dict()
+                    diccionarioDatos['NAME'] = parametros['firstname']
+                    diccionarioDatos['LASTNAME'] = parametros['lastname']
+                    diccionarioDatos['EMAIL'] = parametros['email']
+                    diccionarioDatos['TOKEN'] = code_verification
+
+                    listaCorreosDestinatarios = list()
+                    listaCorreosDestinatarios.append(parametros['email'])
+                    html_message = render_to_string('email_user_create.html', diccionarioDatos)
+                    asunto = "Bienvenido, falta confirmar correo"
+                    firmaResumenRemitente = Preferences.NAME_APP
+                    send_mail(
+                        asunto,
+                        strip_tags(html_message),
+                        firmaResumenRemitente,
+                        listaCorreosDestinatarios,
+                        fail_silently=False,
+                        html_message=html_message
+                    )
                 else:
                     data['code_verification'] = parametros['code_verification']
-                data['Value_button'] = 'VALIDAR CODIGO'
+                if len(parametros['code_verification']) > 0:
+                    data['Value_button'] = 'VALIDAR NUEVO CODIGO'
+                else:
+                    data['Value_button'] = 'VALIDAR CODIGO'
             return JsonResponse(data, safe=False)
         else:
             data = dict()
@@ -67,103 +136,71 @@ def signup_confirm_email(request):
     return render(request, 'signup_confim_email.html', context)
 
 
-
 def signup(request):
     forms = RegistrationForm()
-    pasoFinal = False
-    value_button = 'Validar Email'
-    code_verification = ""
+    value_button = 'Guardar'
+    context = dict()
+    if request.method == 'GET':
+        parametros = request.GET
+        datosRecibidos = parametros['D']
+        import base64
+        import gzip
+        import json
+        datosRecibidos = base64.b64decode(datosRecibidos)
+        datosRecibidos = gzip.decompress(datosRecibidos).decode('utf-8')
+        datosRecibidos = json.loads(datosRecibidos)
+        context['firstname'] = datosRecibidos['firstname']
+        context['lastname'] = datosRecibidos['lastname']
+        context['email'] = datosRecibidos['email']
+
     if request.method == 'POST':
         parametros = request.POST
-        print(parametros['email'])
-        if len(parametros) == 6:
-            print(parametros['firstname'])
-            print(parametros['lastname'])
-            print(parametros['email'])
-            from random import randint
-            code_verification = str(randint(1000, 9999))
-            data = dict()
-            data['code_verification'] = code_verification
-            data['value_button'] = "Validar Code"
-            data['paso'] = "pasoFinal"
-            return JsonResponse(data, safe=False)
-        else:
-            forms = RegistrationForm(parametros)
-            print(forms.is_valid())
-            if forms.is_valid():
-                firstname = forms.cleaned_data['firstname']
-                lastname = forms.cleaned_data['lastname']
-                email = forms.cleaned_data['email']
-                username = forms.cleaned_data['username']
-                password = forms.cleaned_data['password']
-                confirm_password = forms.cleaned_data['confirm_password']
-                if password == confirm_password:
-                    try:
-                        from datetime import datetime
-                        now = datetime.now()
-                        tiempoAhora = dict()
-                        tiempoAhora['year'] = now.year
-                        tiempoAhora['month'] = now.month
-                        tiempoAhora['day'] = now.day
-                        tiempoAhora['hour'] = now.hour
-                        tiempoAhora['minute'] = now.minute + 15
-                        tiempoAhora['second'] = now.second
-                        tiempoAhora['firstname'] = firstname
-                        tiempoAhora['lastname'] = lastname
-                        tiempoAhora['email'] = email
-                        tiempoAhora['username'] = username
-                        tiempoAhora['password'] = password
+        forms = RegistrationForm(parametros)
+        if forms.is_valid():
+            firstname = forms.cleaned_data['firstname']
+            lastname = forms.cleaned_data['lastname']
+            email = forms.cleaned_data['email']
+            username = email
+            password = forms.cleaned_data['password']
+            confirm_password = forms.cleaned_data['confirm_password']
+            if password == confirm_password:
+                try:
+                    diccionarioDatos = dict()
+                    diccionarioDatos['USERNAME'] = username
+                    diccionarioDatos['NAME'] = firstname
+                    diccionarioDatos['LASTNAME'] = lastname
+                    diccionarioDatos['EMAIL'] = email
 
-                        import base64
-                        import json
-                        import gzip
-                        comprimido = base64.b64encode(bytes(json.dumps(tiempoAhora), 'utf-8'))
-                        comprimido_codificado = gzip.compress(comprimido)
+                    listaCorreosDestinatarios = list()
+                    listaCorreosDestinatarios.append(email)
+                    html_message = render_to_string('email_user_create.html', diccionarioDatos)
+                    asunto = "Bienvenido, su cuenta ha sido creada correctamente"
+                    firmaResumenRemitente = Preferences.NAME_APP
+                    send_mail(
+                        asunto,
+                        strip_tags(html_message),
+                        firmaResumenRemitente,
+                        listaCorreosDestinatarios,
+                        fail_silently=False,
+                        html_message=html_message
+                    )
 
-                        diccionarioDatos = dict()
-                        diccionarioDatos['USERNAME'] = username
-                        diccionarioDatos['NAME'] = firstname
-                        diccionarioDatos['LASTNAME'] = lastname
-                        diccionarioDatos['EMAIL'] = email
-                        diccionarioDatos['TOKEN'] = comprimido_codificado
+                    User.objects.create_user(username=username, password=password, email=email, first_name=firstname,
+                                             last_name=lastname)
 
-                        decodificado_comprimido = gzip.decompress(comprimido_codificado)
-                        descomprimido = base64.b64decode(decodificado_comprimido)
-                        print(decodificado_comprimido)
-                        print(descomprimido)
+                    data = dict()
+                    data['redirec'] = 'ok'
+                    return JsonResponse(data, safe=False)
+                except:
+                    context = {
+                        'form': forms,
+                        'error': 'This Username Already exists!'
+                    }
+                    return render(request, 'signup.html', context)
 
-                        listaCorreosDestinatarios = list()
-                        listaCorreosDestinatarios.append(email)
-                        html_message = render_to_string('email_user_create.html', diccionarioDatos)
-                        asunto = "Bienvenido, falta confirmar correo"
-                        firmaResumenRemitente = Preferences.NAME_APP
-                        send_mail(
-                            asunto,
-                            strip_tags(html_message),
-                            firmaResumenRemitente,
-                            listaCorreosDestinatarios,
-                            fail_silently=False,
-                            html_message=html_message
-                        )
+    context['form'] = forms
+    context['Value_button'] = value_button
 
-                        pasoFinal = False
-                        value_button = 'Crear'
-
-                        # User.objects.create_user(username=username, password=password, email=email, first_name=firstname,
-                        #                          last_name=lastname)
-                        return redirect('signin')
-                    except:
-                        context = {
-                            'form': forms,
-                            'error': 'This Username Already exists!'
-                        }
-                        return render(request, 'signup.html', context)
-    context = {
-        'form': forms,
-        'paso': pasoFinal,
-        'Value_button': value_button,
-        'code_verification': code_verification
-    }
     return render(request, 'signup.html', context)
 
 

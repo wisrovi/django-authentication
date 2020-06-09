@@ -15,8 +15,6 @@ class RegistrationForm(forms.Form):
         attrs={'class': 'input100', 'type': 'text', 'name': 'lastname', 'placeholder': 'Escribe tu apellido'}))
     email = forms.CharField(widget=forms.TextInput(
         attrs={'class': 'input100', 'type': 'email', 'name': 'email', 'placeholder': 'Escribe tu email'}))
-    username = forms.CharField(widget=forms.TextInput(
-        attrs={'class': 'input100', 'type': 'text', 'name': 'username', 'placeholder': 'Escribe tu nombre de usuario'}))
     password = forms.CharField(widget=forms.TextInput(
         attrs={'class': 'input100', 'type': 'password', 'name': 'password', 'placeholder': 'Escribe tu contraseña'}))
     confirm_password = forms.CharField(widget=forms.TextInput(
